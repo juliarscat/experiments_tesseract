@@ -1,0 +1,62 @@
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
+import itertools
+from matplotlib.animation import FuncAnimation
+
+# Generar vèrtexs del hipercub 4D (tesseract)
+def generate_hypercube_vertices(n=4):
+    return list(itertools.product([0, 1], repeat=n))
+
+# Projectar els punts 4D a 3D aplicant rotació
+def project_4d_to_3d(points, angle):
+    projected = []
+    for p in points:
+        # Rotació en el pla 3-4 (dimensió 4 sobre 3)
+        x = p[0]
+        y = p[1]
+        z = p[2] * np.cos(angle) - p[3] * np.sin(angle)
+        w = p[2] * np.sin(angle) + p[3] * np.cos(angle)
+        projected.append((x + 0.5 * w, y + 0.5 * w, z))
+    return projected
+
+# Connectar els vèrtexs
+def get_edges(vertices):
+    edges = []
+    for i, v1 in enumerate(vertices):
+        for j, v2 in enumerate(vertices):
+            if i < j and sum(a != b for a, b in zip(v1, v2)) == 1:
+                edges.append((i, j))
+    return edges
+
+# Paràmetres base
+vertices = generate_hypercube_vertices()
+edges = get_edges(vertices)
+
+fig = plt.figure(figsize=(8, 6))
+ax = fig.add_subplot(111, projection='3d')
+
+# Inicialitzar línies
+lines = [ax.plot([0, 0], [0, 0], [0, 0], color='blue')[0] for _ in edges]
+
+def update(frame):
+    ax.clear()
+    ax.set_xlim([0, 2])
+    ax.set_ylim([0, 2])
+    ax.set_zlim([0, 2])
+    ax.set_title("Hipercub 4D en moviment (projecció 3D)")
+
+    projected = project_4d_to_3d(vertices, frame * 0.1)
+
+    for line, (i, j) in zip(lines, edges):
+        x = [projected[i][0], projected[j][0]]
+        y = [projected[i][1], projected[j][1]]
+        z = [projected[i][2], projected[j][2]]
+        ax.plot(x, y, z, color='blue')
+
+    return lines
+
+anim = FuncAnimation(fig, update, frames=60, interval=100)
+
+from IPython.display import HTML
+HTML(anim.to_jshtml())
