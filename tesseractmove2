@@ -1,1 +1,76 @@
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
+from matplotlib import animation
+from IPython.display import HTML
+
+# Vèrtexs del tesseract (hipercub 4D)
+def generate_tesseract_vertices():
+    return np.array([[x, y, z, w] for x in (0, 1) for y in (0, 1)
+                     for z in (0, 1) for w in (0, 1)])
+
+# Rotació combinada en X-W i Y-Z
+def rotate_4d(vertices, angle):
+    rotation_matrix = np.identity(4)
+    c, s = np.cos(angle), np.sin(angle)
+
+    # Rotació en X-W
+    rot_xw = np.identity(4)
+    rot_xw[0, 3] = -s
+    rot_xw[3, 0] = s
+    rot_xw[0, 0] = c
+    rot_xw[3, 3] = c
+
+    # Rotació en Y-Z
+    rot_yz = np.identity(4)
+    rot_yz[1, 2] = -s
+    rot_yz[2, 1] = s
+    rot_yz[1, 1] = c
+    rot_yz[2, 2] = c
+
+    rotation_matrix = rot_xw @ rot_yz
+    return vertices @ rotation_matrix.T
+
+# Projecció de 4D a 3D
+def project_4d_to_3d(vertices):
+    projected = []
+    distance = 2.0
+    for x, y, z, w in vertices:
+        factor = distance / (distance - w)
+        projected.append([x * factor, y * factor, z * factor])
+    return np.array(projected)
+
+# Edges entre vèrtexs veïns
+def get_edges():
+    edges = []
+    for i in range(16):
+        for j in range(i + 1, 16):
+            if bin(i ^ j).count('1') == 1:
+                edges.append((i, j))
+    return edges
+
+# Inicialització
+vertices = generate_tesseract_vertices()
+edges = get_edges()
+
+fig = plt.figure(figsize=(8, 8))
+ax = fig.add_subplot(111, projection='3d')
+
+def update(frame):
+    ax.clear()
+    rotated = rotate_4d(vertices, frame * 0.05)
+    projected = project_4d_to_3d(rotated)
+
+    for edge in edges:
+        points = projected[list(edge)]
+        ax.plot(points[:, 0], points[:, 1], points[:, 2], 'magenta')
+
+    ax.set_xlim([-2, 3])
+    ax.set_ylim([-2, 3])
+    ax.set_zlim([-2, 3])
+    ax.set_axis_off()
+    ax.set_title("Rotació combinada d’un Tesseract (4D → 3D)", fontsize=14)
+
+ani = animation.FuncAnimation(fig, update, frames=100, interval=100)
+HTML(ani.to_jshtml())
 
